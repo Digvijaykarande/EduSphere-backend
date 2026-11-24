@@ -8,7 +8,7 @@ import authRoutes from "./src/routes/auth.routes.js";
 import schoolRoutes from "./src/routes/school.routes.js";
 import teacherRoutes from "./src/routes/teacher.routes.js";
 import studentRoutes from "./src/routes/student.routes.js";
-import events from "./src/routes/event.routes.js"
+import events from "./src/routes/event.routes.js";
 import attendanceRoutes from "./src/routes/attendance.routes.js";
 import leaveRoutes from "./src/routes/leave.routes.js";
 import assignmentsRoutes from "./src/routes/assignments.routes.js";
@@ -33,16 +33,51 @@ app.use(
   helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
-  })
+  }),
 );
 
 // CORS — must allow credentials so the httpOnly cookie round-trips.
-app.use(
-  cors({
-    origin: env.FRONTEND_URL,
-    credentials: true,
-  })
-);
+// app.use(
+//   cors({
+//     origin: env.FRONTEND_URL || "https://eduspare.netlify.app",
+//     credentials: true,
+//   })
+// );
+
+// CORS Configuration
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://eduspare.netlify.app",
+  env.FRONTEND_URL,
+].filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests without an Origin header (Postman, server-to-server)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Allow explicitly trusted frontend origins
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Reject unknown origins
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+
+  credentials: true,
+
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
 
 // Body parsers with sane size limits.
 app.use(express.json({ limit: "100kb" }));
@@ -72,7 +107,7 @@ app.use("/api/auth", authRoutes);
 // sub-paths and 403 any non-SCHOOL role (e.g. a TEACHER viewing the fees
 // dashboard) before the request ever reaches the intended router.
 app.use("/api/school/events", events);
-app.use("/api/school/fees", feesRoutes);   // TEACHER + SCHOOL read access
+app.use("/api/school/fees", feesRoutes); // TEACHER + SCHOOL read access
 app.use("/api/school", schoolRoutes);
 // Likewise, /api/student/fees before /api/student for consistent precedence.
 app.use("/api/student/fees", studentFeesRoutes);
@@ -83,7 +118,6 @@ app.use("/api/leave", leaveRoutes);
 app.use("/api/assignments", assignmentsRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/exams", examRoutes);
-
 
 // 404
 app.use((req, res) => {
