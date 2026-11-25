@@ -6,6 +6,7 @@ import {
   getSchoolStatsHandler,
   getMyAttendanceHandler,
   getMyTodaySummariesHandler,
+  getMyWeeklySummariesHandler,
   getSchoolSectionsHandler,
   getSectionRosterHandler,
 } from "../controllers/attendance.controller.js";
@@ -24,6 +25,7 @@ router.get("/mine", authorizeRoles(ROLES.STUDENT), getMyAttendanceHandler);
 // Self-service — TEACHER's today's attendance summary across all their
 // sections, used by the Academics AttendanceSummary widget.
 router.get("/today-summaries", authorizeRoles(ROLES.TEACHER), getMyTodaySummariesHandler);
+router.get("/today-summaries/week", authorizeRoles(ROLES.TEACHER), getMyWeeklySummariesHandler);
 
 // Student attendance history — self (STUDENT), or any TEACHER/SCHOOL in the
 // same school. Self-only enforcement for STUDENT happens in the controller,

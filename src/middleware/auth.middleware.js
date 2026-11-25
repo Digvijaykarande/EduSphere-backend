@@ -10,7 +10,12 @@ import { asyncHandler } from "../utils/asyncHandler.js";
  * cookies now.
  */
 export const protect = asyncHandler(async (req, _res, next) => {
-  const token = req.cookies?.access_token;
+  const cookieToken = req.cookies?.access_token;
+  const authHeader = req.headers.authorization || "";
+  const bearerToken = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7).trim()
+    : "";
+  const token = cookieToken || bearerToken;
   if (!token) {
     throw new AppError("Not authenticated", 401);
   }

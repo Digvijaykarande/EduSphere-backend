@@ -46,6 +46,8 @@ export const registerSchool = asyncHandler(async (req, res) => {
     {
       user: result.user,
       school: result.school,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     },
     201
   );
@@ -62,6 +64,8 @@ export const login = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, "Login successful", {
     user: result.user,
     mustChangePassword: result.mustChangePassword,
+    accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
   });
 });
 
@@ -78,18 +82,22 @@ export const me = asyncHandler(async (req, res) => {
 });
 
 export const refresh = asyncHandler(async (req, res) => {
-  const raw = req.cookies?.refresh_token;
+  const raw = req.cookies?.refresh_token || req.body?.refreshToken;
   const result = await refreshService(raw, reqMeta(req));
 
   setAuthCookies(res, {
     accessToken: result.accessToken,
     refreshToken: result.refreshToken,
   });
-  return ApiResponse.success(res, "Session refreshed", { user: result.user });
+  return ApiResponse.success(res, "Session refreshed", {
+    user: result.user,
+    accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
+  });
 });
 
 export const logout = asyncHandler(async (req, res) => {
-  const raw = req.cookies?.refresh_token;
+  const raw = req.cookies?.refresh_token || req.body?.refreshToken;
   await logoutService(raw);
   clearAuthCookies(res);
   return ApiResponse.success(res, "Logged out successfully");
@@ -159,5 +167,7 @@ export const verifyEmail = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, "Email verified. You are now signed in.", {
     user: result.user,
     mustChangePassword: result.mustChangePassword,
+    accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
   });
 });

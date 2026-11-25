@@ -17,6 +17,7 @@ import {
   getSchoolStats,
   getMyAttendanceHistory,
   getMyTodaySummaries,
+  getMyWeeklySummaries,
   getSchoolSections,
   getSectionRoster,
 } from "../services/attendance.service.js";
@@ -132,4 +133,10 @@ export const getMyAttendanceHandler = asyncHandler(async (req, res) => {
 export const getMyTodaySummariesHandler = asyncHandler(async (req, res) => {
   const summaries = await getMyTodaySummaries(req.user.schoolId, req.user._id);
   return ApiResponse.success(res, "Today's summaries retrieved", { summaries });
+});
+
+// Self-service — TEACHER's Mon-Sat weekly attendance totals across all their sections.
+export const getMyWeeklySummariesHandler = asyncHandler(async (req, res) => {
+  const week = await getMyWeeklySummaries(req.user.schoolId, req.user._id);
+  return ApiResponse.success(res, "Weekly summaries retrieved", { week });
 });

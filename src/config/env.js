@@ -43,6 +43,7 @@ const env = {
 
   // --- Cookies ---
   COOKIE_SECURE: process.env.COOKIE_SECURE === "true",
+  COOKIE_SAMESITE: (process.env.COOKIE_SAMESITE || "lax").toLowerCase(),
   COOKIE_DOMAIN: process.env.COOKIE_DOMAIN || "",
 
   // --- Login alias generator ---

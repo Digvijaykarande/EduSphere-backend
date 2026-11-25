@@ -307,6 +307,73 @@ export async function getMyTodaySummaries(schoolId, teacherUserId) {
 }
 
 /**
+ * Mon–Sat present/absent totals summed across all sections the logged-in
+ * teacher is assigned to. Powers the Teacher dashboard's weekly AttendanceChart.
+ */
+export async function getMyWeeklySummaries(schoolId, teacherUserId) {
+  const sid = targetSchoolId(schoolId);
+  const teacher = await resolveTeacher(sid, teacherUserId);
+
+  const assignments = await TeacherAssignment.find({
+    teacherId: teacher._id,
+    schoolId: sid,
+    isActive: true,
+  }).select("sectionId");
+
+  const sectionIds = Array.from(
+    new Set(assignments.map((a) => a.sectionId && String(a.sectionId)).filter(Boolean))
+  );
+
+  const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const today = normalizeToDay(new Date());
+  const utcDay = today.getUTCDay(); // 0 = Sun ... 6 = Sat
+  const diffToMonday = utcDay === 0 ? -6 : 1 - utcDay;
+
+  const monday = new Date(today);
+  monday.setUTCDate(today.getUTCDate() + diffToMonday);
+  const saturday = new Date(monday);
+  saturday.setUTCDate(monday.getUTCDate() + 5);
+
+  if (sectionIds.length === 0) {
+    return labels.map((label) => ({ label, present: 0, absent: 0 }));
+  }
+
+  const records = await Attendance.find({
+    schoolId: sid,
+    sectionId: { $in: sectionIds },
+    date: { $gte: monday, $lte: saturday },
+  }).select("studentId date status");
+
+  const priority = { absent: 3, late: 2, present: 1, "not-marked": 0 };
+  const byDayTime = new Map();
+  for (const r of records) {
+    const dayTime = normalizeToDay(r.date).getTime();
+    if (!byDayTime.has(dayTime)) byDayTime.set(dayTime, new Map());
+    const perStudent = byDayTime.get(dayTime);
+    const key = String(r.studentId);
+    const current = perStudent.get(key);
+    if (!current || priority[r.status] > priority[current]) {
+      perStudent.set(key, r.status);
+    }
+  }
+
+  return labels.map((label, idx) => {
+    const d = new Date(monday);
+    d.setUTCDate(monday.getUTCDate() + idx);
+    const perStudent = byDayTime.get(d.getTime());
+    let present = 0;
+    let absent = 0;
+    if (perStudent) {
+      for (const status of perStudent.values()) {
+        if (status === "present") present += 1;
+        else if (status === "absent") absent += 1;
+      }
+    }
+    return { label, present, absent };
+  });
+}
+
+/**
  * School-wide snapshot for the Principal dashboard's top metric cards
  * (Total Teachers, Present Teachers, Total Students, Avg Attendance).
  * "Present today" is derived the same way as getSectionDaySummary: the

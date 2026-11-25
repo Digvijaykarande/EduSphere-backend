@@ -1,12 +1,15 @@
 import env from "../config/env.js";
 
-const baseOpts = () => ({
-  httpOnly: true,
-  secure: env.COOKIE_SECURE,
-  sameSite: "lax",
-  path: "/",
-  ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
-});
+const baseOpts = () => {
+  const sameSite = env.COOKIE_SAMESITE || "lax";
+  return {
+    httpOnly: true,
+    secure: sameSite === "none" ? true : env.COOKIE_SECURE,
+    sameSite,
+    path: "/",
+    ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
+  };
+};
 
 /**
  * Set the access + refresh cookies on a response. Names are stable so the
