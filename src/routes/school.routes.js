@@ -46,57 +46,65 @@ import { ROLES } from "../models/constants.js";
 
 const router = Router();
 
-// All school-management routes require an authed SCHOOL or SUPER_ADMIN.
+// All school-management routes require authentication; role checks are per-route
+// so teachers can enroll/list students while principal-only routes stay locked.
 router.use(protect);
-router.use(authorizeRoles(ROLES.SCHOOL, ROLES.SUPER_ADMIN));
+
+const principalOnly = authorizeRoles(ROLES.SCHOOL, ROLES.SUPER_ADMIN);
+const principalOrTeacher = authorizeRoles(
+  ROLES.SCHOOL,
+  ROLES.SUPER_ADMIN,
+  ROLES.TEACHER
+);
 
 // Teacher management — identified by slug, not _id.
-router.post("/teachers", createTeacher);
-router.get("/teachers", getTeachers);
-router.patch("/teachers/:slug", updateTeacher);
-router.delete("/teachers/:slug", deleteTeacher);
+router.post("/teachers", principalOnly, createTeacher);
+router.get("/teachers", principalOnly, getTeachers);
+router.patch("/teachers/:slug", principalOnly, updateTeacher);
+router.delete("/teachers/:slug", principalOnly, deleteTeacher);
 
-// Student management — symmetric.
-router.post("/students", createStudent);
-router.get("/students", getStudents);
-router.patch("/students/:slug", updateStudent);
-router.delete("/students/:slug", deleteStudent);
+// Student management — teachers may enroll & list students in their school;
+// edits/deletes remain principal-only.
+router.post("/students", principalOrTeacher, createStudent);
+router.get("/students", principalOrTeacher, getStudents);
+router.patch("/students/:slug", principalOnly, updateStudent);
+router.delete("/students/:slug", principalOnly, deleteStudent);
 
 // Staff management (Lab Assistant, Librarian, Cashier, etc.) — symmetric.
-router.post("/staff", createStaff);
-router.get("/staff", getStaff);
-router.patch("/staff/:slug", updateStaff);
-router.delete("/staff/:slug", deleteStaff);
+router.post("/staff", principalOnly, createStaff);
+router.get("/staff", principalOnly, getStaff);
+router.patch("/staff/:slug", principalOnly, updateStaff);
+router.delete("/staff/:slug", principalOnly, deleteStaff);
 
 // Sections (Class 10 - Section A, etc.) — identified by slug.
-router.post("/sections", createSectionHandler);
-router.get("/sections", getSections);
-router.get("/sections/:slug", getSection);
-router.patch("/sections/:slug", updateSectionHandler);
-router.delete("/sections/:slug", deleteSectionHandler);
+router.post("/sections", principalOnly, createSectionHandler);
+router.get("/sections", principalOnly, getSections);
+router.get("/sections/:slug", principalOnly, getSection);
+router.patch("/sections/:slug", principalOnly, updateSectionHandler);
+router.delete("/sections/:slug", principalOnly, deleteSectionHandler);
 
 // Teacher-to-class-subject allocation — the "Allocate Teacher to Class" form.
 // Identified by Mongo _id since these rows are never surfaced by slug in the UI.
-router.post("/assignments", createAssignmentHandler);
-router.get("/assignments", getAssignmentsHandler);
-router.patch("/assignments/:id", updateAssignmentHandler);
-router.delete("/assignments/:id", deleteAssignmentHandler);
+router.post("/assignments", principalOnly, createAssignmentHandler);
+router.get("/assignments", principalOnly, getAssignmentsHandler);
+router.patch("/assignments/:id", principalOnly, updateAssignmentHandler);
+router.delete("/assignments/:id", principalOnly, deleteAssignmentHandler);
 
 // Timetable — principal builds a teacher's schedule (from Teacher Allocation)
 // or a section's schedule (from Class & Subject Maintenance).
-router.post("/timetable/slots", principalUpsertSlotHandler);
-router.delete("/timetable/slots/:id", principalDeleteSlotHandler);
-router.get("/timetable/section/:sectionId", getSectionTimetableHandler);
-router.get("/timetable/teacher/:teacherId", getTeacherTimetableHandler);
+router.post("/timetable/slots", principalOnly, principalUpsertSlotHandler);
+router.delete("/timetable/slots/:id", principalOnly, principalDeleteSlotHandler);
+router.get("/timetable/section/:sectionId", principalOnly, getSectionTimetableHandler);
+router.get("/timetable/teacher/:teacherId", principalOnly, getTeacherTimetableHandler);
 
 // Academic Structure wings (Primary Wing, Secondary Wing, etc.)
-router.post("/wings", createWingHandler);
-router.get("/wings", getWingsHandler);
-router.patch("/wings/:slug", updateWingHandler);
-router.delete("/wings/:slug", deleteWingHandler);
-router.post("/wings/reorder", reorderWingsHandler);
+router.post("/wings", principalOnly, createWingHandler);
+router.get("/wings", principalOnly, getWingsHandler);
+router.patch("/wings/:slug", principalOnly, updateWingHandler);
+router.delete("/wings/:slug", principalOnly, deleteWingHandler);
+router.post("/wings/reorder", principalOnly, reorderWingsHandler);
 
 // School profile.
-router.patch("/profile", updateSchool);
+router.patch("/profile", principalOnly, updateSchool);
 
 export default router;

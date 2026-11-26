@@ -16,6 +16,7 @@ import {
   getSchoolTrend,
   getSchoolStats,
   getMyAttendanceHistory,
+  getMyAttendanceWeek,
   getMyTodaySummaries,
   getMyWeeklySummaries,
   getSchoolSections,
@@ -127,6 +128,12 @@ export const getMyAttendanceHandler = asyncHandler(async (req, res) => {
   const query = studentHistoryQuerySchema.parse(req.query);
   const result = await getMyAttendanceHistory(req.user.schoolId, req.user._id, query);
   return ApiResponse.success(res, "Your attendance retrieved", result);
+});
+
+// Self-service — STUDENT's Mon-Sat weekly attendance breakdown.
+export const getMyAttendanceWeekHandler = asyncHandler(async (req, res) => {
+  const week = await getMyAttendanceWeek(req.user.schoolId, req.user._id);
+  return ApiResponse.success(res, "Weekly attendance retrieved", { week });
 });
 
 // Self-service — TEACHER's today's attendance summary across all their sections.

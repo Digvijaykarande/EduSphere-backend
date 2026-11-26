@@ -5,6 +5,7 @@ import {
   getSchoolTrendHandler,
   getSchoolStatsHandler,
   getMyAttendanceHandler,
+  getMyAttendanceWeekHandler,
   getMyTodaySummariesHandler,
   getMyWeeklySummariesHandler,
   getSchoolSectionsHandler,
@@ -21,6 +22,7 @@ router.use(protect);
 // Self-service — STUDENT viewing their own attendance. Mounted before
 // /student/:slug so "mine" is never swallowed as a slug param.
 router.get("/mine", authorizeRoles(ROLES.STUDENT), getMyAttendanceHandler);
+router.get("/mine/week", authorizeRoles(ROLES.STUDENT), getMyAttendanceWeekHandler);
 
 // Self-service — TEACHER's today's attendance summary across all their
 // sections, used by the Academics AttendanceSummary widget.

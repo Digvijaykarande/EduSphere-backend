@@ -513,3 +513,50 @@ export async function getMyAttendanceHistory(schoolId, studentUserId, { from, to
 
   return getStudentHistory(sid, student.slug, { from, to });
 }
+
+/**
+ * Mon–Sat present/absent breakdown for the logged-in student's current week.
+ * Powers the Student dashboard's weekly AttendanceChart.
+ */
+export async function getMyAttendanceWeek(schoolId, studentUserId) {
+  const sid = targetSchoolId(schoolId);
+  const student = await Student.findOne({ userId: studentUserId, schoolId: sid }).select("_id");
+  if (!student) throw new AppError("Student profile not found", 404);
+
+  const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const today = normalizeToDay(new Date());
+  const utcDay = today.getUTCDay();
+  const diffToMonday = utcDay === 0 ? -6 : 1 - utcDay;
+
+  const monday = new Date(today);
+  monday.setUTCDate(today.getUTCDate() + diffToMonday);
+  const saturday = new Date(monday);
+  saturday.setUTCDate(monday.getUTCDate() + 5);
+
+  const records = await Attendance.find({
+    schoolId: sid,
+    studentId: student._id,
+    date: { $gte: monday, $lte: saturday },
+  }).select("date status");
+
+  const priority = { absent: 3, late: 2, present: 1, "not-marked": 0 };
+  const byDayTime = new Map();
+  for (const r of records) {
+    const dayTime = normalizeToDay(r.date).getTime();
+    const current = byDayTime.get(dayTime);
+    if (!current || priority[r.status] > priority[current]) {
+      byDayTime.set(dayTime, r.status);
+    }
+  }
+
+  return labels.map((label, idx) => {
+    const d = new Date(monday);
+    d.setUTCDate(monday.getUTCDate() + idx);
+    const status = byDayTime.get(d.getTime());
+    return {
+      label,
+      present: status === "present" ? 1 : 0,
+      absent: status === "absent" ? 1 : 0,
+    };
+  });
+}
